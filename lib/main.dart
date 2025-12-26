@@ -64,28 +64,42 @@ class _ChatScreenState extends State<ChatScreen> {
     _controller.clear();
 
     try {
-      // 1. Call the model and handle the response
+      // 1. Get response from Gemini
       final response = await _model.generateContent([Content.text(text)]);
-
-      // 2. Safely extract and clean the text response
       final String? rawText = response.text;
+
       if (rawText == null || rawText.isEmpty) {
         throw Exception("The AI returned an empty response.");
       }
 
-      // 3. Remove Markdown JSON wrapping if present
+      // 2. Clean Markdown and whitespace
       String cleanedJson = rawText
           .replaceAll('```json', '')
           .replaceAll('```', '')
           .trim();
 
-      // 4. Decode the cleaned JSON string
-      final Map<String, dynamic> jsonResponse = jsonDecode(cleanedJson);
+      // 3. Decode as dynamic to prevent Type Errors
+      final dynamic decoded = jsonDecode(cleanedJson);
+      Map<String, dynamic> jsonResponse;
 
-      if (jsonResponse['type'] == 'msg') {
-        _addBotResponse(jsonResponse['content']);
+      // 4. Fix: Check if it's a List or a Map
+      if (decoded is List) {
+        if (decoded.isNotEmpty && decoded.first is Map) {
+          jsonResponse = Map<String, dynamic>.from(decoded.first);
+        } else {
+          throw Exception("AI returned a list but no valid query found.");
+        }
+      } else if (decoded is Map) {
+        jsonResponse = Map<String, dynamic>.from(decoded);
       } else {
-        // 5. Query Firebase Firestore
+        throw Exception("Unexpected response format.");
+      }
+
+      // 5. Logic: Handle Message or Database Query
+      if (jsonResponse['type'] == 'msg') {
+        _addBotResponse(jsonResponse['content'] ?? "How can I help you today?");
+      } else {
+        // Perform the Firebase Query
         final results = await FirebaseFirestore.instance
             .collection('classes')
             .where(jsonResponse['field'], isEqualTo: jsonResponse['value'])
@@ -96,18 +110,18 @@ class _ChatScreenState extends State<ChatScreen> {
         } else {
           String list = "I found these classes:\n";
           for (var doc in results.docs) {
-            // Access fields safely
-            final name = doc.data().containsKey('name') ? doc['name'] : 'Unnamed Class';
-            final slots = doc.data().containsKey('slots') ? doc['slots'] : 0;
+            final data = doc.data();
+            final name = data['name'] ?? 'Unnamed Class';
+            final slots = data['slots'] ?? 0;
             list += "• $name ($slots slots left)\n";
           }
           _addBotResponse(list);
         }
       }
     } catch (e) {
-      // 6. Print the ACTUAL error to the console for debugging
+      // 6. Debugging output for the terminal
       debugPrint("Chatbot Error: $e");
-      _addBotResponse("Error: ${e.toString()}");
+      _addBotResponse("Sorry, I had trouble processing that. Try asking for a specific class category.");
     } finally {
       setState(() => _isTyping = false);
     }
