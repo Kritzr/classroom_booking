@@ -1,206 +1,96 @@
-import 'dart:convert';
+import 'package:classroom_app/adminDashboard.dart';
+import 'package:classroom_app/loginPage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'home_page.dart';
 import 'firebase_options.dart';
+
+/* -------------------- THEME COLORS -------------------- */
+const Color primaryOrange = Color(0xFFE2852E);
+const Color softYellow = Color(0xFFF5C857);
+const Color paleYellow = Color(0xFFFFEE91);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const BookingApp());
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print('Firebase initialized successfully');
+  } catch (e) {
+    print('Firebase initialization failed: $e');
+  }
+  runApp(const MyApp());
 }
 
-class BookingApp extends StatelessWidget {
-  const BookingApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.indigo),
-      home: const ChatScreen(),
+      title: 'EduBook',
+      theme: ThemeData(
+        scaffoldBackgroundColor: paleYellow.withOpacity(0.25),
+        fontFamily: 'Roboto',
+      ),
+      home: const SplashScreen(),
     );
   }
 }
 
-class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key});
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
-  final TextEditingController _controller = TextEditingController();
-  final List<Map<String, dynamic>> _messages = [];
-  bool _isTyping = false;
-
-  // FETCHING KEY SECURELY
-  static const String _apiKey = String.fromEnvironment('GEMINI_API_KEY');
-  late final GenerativeModel _model;
-
+class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    //print("debug to check api key length : ${_apikey.length}");
-    _model = GenerativeModel(
-      model: 'gemini-2.0-flash',
-      apiKey: _apiKey,
-      systemInstruction: Content.system(
-          "You are a Class Booking Assistant. Convert user requests to JSON. "
-              "Schema: {'field': string, 'value': string}. "
-              "Fields: 'category' (Yoga, HIIT, Dance). "
-              "If it's a greeting, return {'type': 'msg', 'content': 'Hi! Which class can I find for you?'}"
-      ),
-    );
+    _checkAuth();
   }
 
-  Future<void> _sendMessage(String text) async {
-    if (text.trim().isEmpty) return;
-
-    setState(() {
-      _messages.add({"text": text, "isUser": true});
-      _isTyping = true;
-    });
-    _controller.clear();
-
+  Future<void> _checkAuth() async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    // Use FirebaseAuth to check user
     try {
-      // 1. Get response from Gemini
-      final response = await _model.generateContent([Content.text(text)]);
-      final String? rawText = response.text;
-
-      if (rawText == null || rawText.isEmpty) {
-        throw Exception("The AI returned an empty response.");
-      }
-
-      // 2. Clean Markdown and whitespace
-      String cleanedJson = rawText
-          .replaceAll('```json', '')
-          .replaceAll('```', '')
-          .trim();
-
-      // 3. Decode as dynamic to prevent Type Errors
-      final dynamic decoded = jsonDecode(cleanedJson);
-      Map<String, dynamic> jsonResponse;
-
-      // 4. Fix: Check if it's a List or a Map
-      if (decoded is List) {
-        if (decoded.isNotEmpty && decoded.first is Map) {
-          jsonResponse = Map<String, dynamic>.from(decoded.first);
-        } else {
-          throw Exception("AI returned a list but no valid query found.");
-        }
-      } else if (decoded is Map) {
-        jsonResponse = Map<String, dynamic>.from(decoded);
+      final user = await FirebaseAuth.instance.authStateChanges().first;
+      if (user == null) {
+        Navigator.of(
+          context,
+        ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginPage()));
       } else {
-        throw Exception("Unexpected response format.");
-      }
-
-      // 5. Logic: Handle Message or Database Query
-      if (jsonResponse['type'] == 'msg') {
-        _addBotResponse(jsonResponse['content'] ?? "How can I help you today?");
-      } else {
-        // Perform the Firebase Query
-        final results = await FirebaseFirestore.instance
-            .collection('classes')
-            .where(jsonResponse['field'], isEqualTo: jsonResponse['value'])
+        // Fetch user type from Firestore
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
             .get();
-
-        if (results.docs.isEmpty) {
-          _addBotResponse("I found no ${jsonResponse['value']} classes for you.");
+        final data = doc.data();
+        if (data != null && data['userType'] == 'admin') {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const AdminDashboard()),
+          );
         } else {
-          String list = "I found these classes:\n";
-          for (var doc in results.docs) {
-            final data = doc.data();
-            final name = data['name'] ?? 'Unnamed Class';
-            final slots = data['slots'] ?? 0;
-            list += "• $name ($slots slots left)\n";
-          }
-          _addBotResponse(list);
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const HomePage()),
+          );
         }
       }
     } catch (e) {
-      // 6. Debugging output for the terminal
-      debugPrint("Chatbot Error: $e");
-      _addBotResponse("Sorry, I had trouble processing that. Try asking for a specific class category.");
-    } finally {
-      setState(() => _isTyping = false);
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginPage()));
     }
   }
 
-  void _addBotResponse(String text) {
-    setState(() => _messages.add({"text": text, "isUser": false}));
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("AI Class Finder"), centerTitle: true),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(15),
-              itemCount: _messages.length,
-              itemBuilder: (context, i) => _ChatBubble(
-                text: _messages[i]['text'],
-                isUser: _messages[i]['isUser'],
-              ),
-            ),
-          ),
-          if (_isTyping) const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Text("AI is searching...", style: TextStyle(fontStyle: FontStyle.italic)),
-          ),
-          _InputArea(controller: _controller, onSend: _sendMessage),
-        ],
-      ),
-    );
-  }
-}
-
-class _ChatBubble extends StatelessWidget {
-  final String text;
-  final bool isUser;
-  const _ChatBubble({required this.text, required this.isUser});
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        decoration: BoxDecoration(
-          color: isUser ? Colors.indigo : Colors.grey[300],
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Text(text, style: TextStyle(color: isUser ? Colors.white : Colors.black)),
-      ),
-    );
-  }
-}
-
-class _InputArea extends StatelessWidget {
-  final TextEditingController controller;
-  final Function(String) onSend;
-  const _InputArea({required this.controller, required this.onSend});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      color: Colors.white,
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: controller,
-              decoration: const InputDecoration(hintText: "Search for a class...", border: InputBorder.none),
-            ),
-          ),
-          IconButton(icon: const Icon(Icons.send), onPressed: () => onSend(controller.text)),
-        ],
-      ),
-    );
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }
