@@ -1,6 +1,6 @@
-import 'package:classroom_app/permission_letter_page.dart';
+import 'package:classroom_booking/permission_letter_page.dart';
 import 'package:flutter/material.dart';
-import 'package:classroom_app/widgets/draggable_time_range.dart';
+import 'package:classroom_booking/widgets/draggable_time_range.dart';
 import 'booking_details_page.dart';
 import 'models.dart';
 import 'firestore_service.dart';

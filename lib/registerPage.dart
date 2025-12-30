@@ -1,6 +1,6 @@
-import 'package:classroom_app/adminDashboard.dart';
-import 'package:classroom_app/home_page.dart';
-import 'package:classroom_app/loginPage.dart';
+import 'package:classroom_booking/adminDashboard.dart';
+import 'package:classroom_booking/home_page.dart';
+import 'package:classroom_booking/loginPage.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
