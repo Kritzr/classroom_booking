@@ -1,7 +1,9 @@
+import 'package:classroom_app/adminDashboard.dart';
+import 'package:classroom_app/home_page.dart';
+import 'package:classroom_app/loginPage.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -17,202 +19,203 @@ class _RegisterPageState extends State<RegisterPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   String _selectedUserType = 'user'; // default
-
-
-
   bool _isUsernameValid = true;
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: const Color(0xFFF6F6F6),
-      body: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: Stack(
-          children: [
-            // Yellow Header
-            Container(
-              height: size.height * 0.45,
-              decoration: const BoxDecoration(
-                color: Color(0xFFFFC107),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(40),
-                  bottomRight: Radius.circular(40),
-                ),
-              ),
-            ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () {
+              FocusScope.of(context).unfocus();
+            },
+            child: SizedBox.expand(
+              child: Stack(
+                children: [
+                  // Yellow Background
+                  Container(
+                    height: size.height * 0.45,
+                    width: size.width,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFFC107),
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(40),
+                        bottomRight: Radius.circular(40),
+                      ),
+                    ),
+                  ),
 
-            // Content
-            SafeArea(
-              child: SingleChildScrollView(
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom + 40,
-                ),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 600),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 40),
-
-                        const Text(
-                          "Join Us",
-                          style: TextStyle(
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
-                          ),
+                  // Content
+                  SingleChildScrollView(
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom + 40,
+                    ),
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: 700,
                         ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          "Create Free Account",
-                          style: TextStyle(fontSize: 16),
-                        ),
+                        child: Column(
+                          children: [
+                            SizedBox(height: size.height * 0.12),
 
-                        const SizedBox(height: 40),
-
-                        // Register Card
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(30),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 10,
-                                offset: const Offset(0, 5),
+                            // Header Text
+                            const Text(
+                              "Hello",
+                              style: TextStyle(
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
                               ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "Personal Info",
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              const Text(
-                                "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              const SizedBox(height: 20),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              "Create Account",
+                              style: TextStyle(fontSize: 16),
+                            ),
 
-                              const Text("Your Name"),
-                              const SizedBox(height: 8),
+                            SizedBox(height: size.height * 0.05),
 
-                              // First + Last Name
-                              Row(
+                            // Register Card
+                            Container(
+                              width: size.width * 0.9,
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(30),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 5),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Expanded(
-                                    child: _inputField(
-                                      controller: _firstNameController,
-                                      hint: "First Name",
+                                  const Text(
+                                    "Personal Info",
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: _inputField(
-                                      controller: _lastNameController,
-                                      hint: "Last Name",
+                                  const SizedBox(height: 6),
+                                  const Text(
+                                    "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
                                     ),
                                   ),
-                                ],
-                              ),
+                                  const SizedBox(height: 20),
 
-                              const SizedBox(height: 15),
-                              const Text("Email Address"),
-                              const SizedBox(height: 8),
+                                  const Text("Your Name"),
+                                  const SizedBox(height: 8),
 
-                              _inputField(
-                                controller: _emailController,
-                                hint: "Your Email Address",
-                                icon: Icons.email_outlined,
-                              ),
-
-                              const SizedBox(height: 15),
-                              const Text("Username"),
-                              const SizedBox(height: 8),
-
-                              _inputField(
-                                controller: _usernameController,
-                                hint: "example1234",
-                                suffix: Icon(
-                                  _isUsernameValid
-                                      ? Icons.check_circle
-                                      : Icons.error,
-                                  color: _isUsernameValid
-                                      ? Colors.green
-                                      : Colors.red,
-                                ),
-                                onChanged: (value) {
-                                  setState(() {
-                                    _isUsernameValid = value.length >= 4;
-                                  });
-                                },
-                              ),
-
-                              const SizedBox(height: 15),
-                              const Text("Password"),
-                              const SizedBox(height: 8),
-
-                              _inputField(
-                                controller: _passwordController,
-                                hint: "Enter Password",
-                                icon: Icons.lock_outline,
-                              ),
-
-                              const Text("User Type"),
-                              const SizedBox(height: 8),
-
-                              DropdownButtonFormField<String>(
-                                value: _selectedUserType,
-                                items: const [
-                                  DropdownMenuItem(
-                                    value: 'user',
-                                    child: Text("User"),
+                                  // First + Last Name
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: _inputField(
+                                          controller: _firstNameController,
+                                          hint: "First Name",
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: _inputField(
+                                          controller: _lastNameController,
+                                          hint: "Last Name",
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  DropdownMenuItem(
-                                    value: 'admin',
-                                    child: Text("Admin"),
+
+                                  const SizedBox(height: 15),
+                                  const Text("Email Address"),
+                                  const SizedBox(height: 8),
+
+                                  _inputField(
+                                    controller: _emailController,
+                                    hint: "Your Email Address",
+                                    icon: Icons.email_outlined,
                                   ),
-                                ],
-                                onChanged: (value) {
-                                  setState(() {
-                                    _selectedUserType = value!;
-                                  });
-                                },
-                                decoration: InputDecoration(
-                                  filled: true,
-                                  fillColor: Colors.grey.shade100,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(15),
-                                    borderSide: BorderSide.none,
+
+                                  const SizedBox(height: 15),
+                                  const Text("Username"),
+                                  const SizedBox(height: 8),
+
+                                  _inputField(
+                                    controller: _usernameController,
+                                    hint: "example1234",
+                                    suffix: Icon(
+                                      _isUsernameValid ? Icons.check_circle : Icons.error,
+                                      color: _isUsernameValid ? Colors.green : Colors.red,
+                                    ),
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _isUsernameValid = value.length >= 4;
+                                      });
+                                    },
                                   ),
-                                ),
-                              ),
 
+                                  const SizedBox(height: 15),
+                                  const Text("Password"),
+                                  const SizedBox(height: 8),
 
-                              const SizedBox(height: 20),
+                                  _inputField(
+                                    controller: _passwordController,
+                                    hint: "Enter Password",
+                                    icon: Icons.lock_outline,
+                                  ),
 
-                              // Save Button
-                              SizedBox(
-                                width: double.infinity,
-                                height: 50,
-                                child: ElevatedButton(
-                                  onPressed: () async {
+                                  const SizedBox(height: 15),
+                                  const Text("User Type"),
+                                  const SizedBox(height: 8),
+
+                                  DropdownButtonFormField<String>(
+                                    value: _selectedUserType,
+                                    items: const [
+                                      DropdownMenuItem(
+                                        value: 'user',
+                                        child: Text("User"),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'admin',
+                                        child: Text("Admin"),
+                                      ),
+                                    ],
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _selectedUserType = value!;
+                                      });
+                                    },
+                                    decoration: InputDecoration(
+                                      filled: true,
+                                      fillColor: Colors.grey.shade100,
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(15),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 20),
+
+                                  // Save Button
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 50,
+                                    child: ElevatedButton(
+                                      onPressed: () async {
                                         final firstName = _firstNameController.text.trim();
                                         final lastName = _lastNameController.text.trim();
                                         final email = _emailController.text.trim();
@@ -231,20 +234,14 @@ class _RegisterPageState extends State<RegisterPage> {
                                         }
 
                                         try {
-                                          // 1️⃣ Create user in Firebase Auth
-                                          UserCredential credential =
-                                              await FirebaseAuth.instance.createUserWithEmailAndPassword(
+                                          UserCredential credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
                                             email: email,
                                             password: password,
                                           );
 
                                           User user = credential.user!;
 
-                                          // 2️⃣ Store additional data in Firestore
-                                          await FirebaseFirestore.instance
-                                              .collection('users')
-                                              .doc(user.uid)
-                                              .set({
+                                          await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
                                             'firstName': firstName,
                                             'lastName': lastName,
                                             'username': username,
@@ -253,7 +250,6 @@ class _RegisterPageState extends State<RegisterPage> {
                                             'createdAt': FieldValue.serverTimestamp(),
                                           });
 
-                                          // 3️⃣ Navigate back or to home
                                           if (!mounted) return;
 
                                           ScaffoldMessenger.of(context).showSnackBar(
@@ -276,50 +272,49 @@ class _RegisterPageState extends State<RegisterPage> {
                                             SnackBar(content: Text(message)),
                                           );
                                         }
-                                    },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        const Color(0xFFFFC107),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(15),
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFFFFC107),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(15),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        "Save & Continue",
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                  child: const Text(
-                                    "Save & Continue",
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
+
+                                  const SizedBox(height: 15),
+
+                                  Center(
+                                    child: TextButton(
+                                      onPressed: () {
+                                        Navigator.pop(context);
+                                      },
+                                      child: const Text(
+                                        "Back to Login",
+                                        style: TextStyle(color: Colors.grey),
+                                      ),
                                     ),
                                   ),
-                                ),
+                                ],
                               ),
-
-                              const SizedBox(height: 15),
-
-                              Center(
-                                child: TextButton(
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                  },
-                                  child: const Text(
-                                    "Back to Login",
-                                    style:
-                                        TextStyle(color: Colors.grey),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
