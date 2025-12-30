@@ -5,7 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class PermissionLetterPage extends StatefulWidget {
-  const PermissionLetterPage({super.key});
+    final String? initialEventTime;
+  const PermissionLetterPage({super.key, this.initialEventTime});
 
   @override
   State<PermissionLetterPage> createState() => _PermissionLetterPageState();
@@ -31,7 +32,14 @@ class _PermissionLetterPageState extends State<PermissionLetterPage> {
   final SignatureController staffSign = SignatureController();
 
   bool showPreview = false;
-
+   @override
+  void initState() {
+    super.initState();
+    // Pre-fill eventTime if provided
+    if (widget.initialEventTime != null) {
+      eventTime.text = widget.initialEventTime!;
+    }
+  }
   @override
   void dispose() {
     chairSign.dispose();
