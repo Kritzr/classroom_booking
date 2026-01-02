@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "973735279660",
+    "project_id": "classroombooking-a7d5c",
+    "storage_bucket": "classroombooking-a7d5c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:973735279660:android:7a6fc958d9acbb27a16589",
+        "android_client_info": {
+          "package_name": "com.example.classroom_booking"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "973735279660-jfccurs6ciftpe1lguobs09tchttch8a.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.classroom_booking",
+            "certificate_hash": "a11a95dba534a1d5d1e1febd74ba7c8fe6eee589"
+          }
+        },
+        {
+          "client_id": "973735279660-g1ll3rebpgcp4vnu8r7vcbh84arc3284.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCQc87ZPAagUJSOAMmqxiBLpbo7ZJ4C0JY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "973735279660-g1ll3rebpgcp4vnu8r7vcbh84arc3284.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "973735279660-1sojoivsjph1v750r6ul8grro3dn7ios.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.classroomBooking"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
