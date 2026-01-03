@@ -4,8 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'firebase_options.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-
+import 'package:http/http.dart' as http;
 
 
 const Color yellowMe = Color(0xFFFFC107);
@@ -25,44 +24,17 @@ class _ChatScreenState extends State<ChatScreen> {
   // FETCHING KEY SECURELY
   late final GenerativeModel _model;
 
-  @override
-  void initState() {
-    super.initState();
-    //print("debug to check api key length : ${_apikey.length}");
-    _apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
-
-    if (_apiKey.isEmpty) {
-      debugPrint("❌ Gemini API Key not loaded");
-    }
-
-    _model = GenerativeModel(
-      model: 'gemini-2.0-flash',
-      apiKey: _apiKey,
-      systemInstruction: Content.system("""
-              You are a Classroom Booking Assistant.
-
-              You must respond ONLY in valid JSON.
-              Use double quotes only.
-              No explanations. No markdown.
-
-              If the user asks about room availability, extract:
-              - roomId
-              - startTime (ISO format)
-              - endTime (ISO format)
-
-              Example output:
-              {
-                "roomId": "/rooms/CSE-AI",
-                "startTime": "2025-12-29T12:30:00",
-                "endTime": "2025-12-29T13:00:00"
-              }
-
-              If the input is unclear:
-              {"type":"msg","content":"Please specify room and time."}
-              """
-      ),
-    );
+  DateTime _parseDateAndTime(String date, String time) {
+    final d = date.split('-').map(int.parse).toList(); // [YYYY, MM, DD]
+    final t = time.split(':').map(int.parse).toList(); // [HH, mm]
+    return DateTime(d[0], d[1], d[2], t[0], t[1]);
   }
+
+  String _formatTime(DateTime dt) {
+    final hour = dt.hour.toString().padLeft(2, '0');
+    final minute = dt.minute.toString().padLeft(2, '0');
+    return "$hour:$minute";
+ }
 
   Future<void> _sendMessage(String text) async {
     if (text.trim().isEmpty) return;
@@ -75,8 +47,13 @@ class _ChatScreenState extends State<ChatScreen> {
 
     try {
       // 1. Get response from Gemini
-      final response = await _model.generateContent([Content.text(text)]);
-      final String? rawText = response.text;
+      final response = await http.post(
+        Uri.parse("https://chatwithgemini-clren2q6uq-uc.a.run.app"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"message": text}),
+      );
+
+      final rawText = jsonDecode(response.body)['text'];
 
       if (rawText == null || rawText.isEmpty) {
         throw Exception("The AI returned an empty response.");
@@ -114,33 +91,59 @@ class _ChatScreenState extends State<ChatScreen> {
       if (jsonResponse['type'] == 'msg') {
         _addBotResponse(jsonResponse['content'] ?? "How can I help you today?");
       } else {
-        // Perform the Firebase Query
-        final results = await FirebaseFirestore.instance
-            .collection('classes')
-            .where(jsonResponse['field'], isEqualTo: jsonResponse['value'])
-            .get();
+  // 🔍 Extract values from Gemini JSON
+        final DocumentReference roomRef = FirebaseFirestore.instance.doc(jsonResponse['roomId']);
+        final String date = jsonResponse['date'];       // "2025-12-29"
+        final String start = jsonResponse['start'];     // "12:30"
+        final String end = jsonResponse['end'];         // "13:00"
 
-        if (results.docs.isEmpty) {
-          _addBotResponse("I found no ${jsonResponse['value']} classes for you.");
+        final DateTime startTime = _parseDateAndTime(date, start);
+        final DateTime endTime = _parseDateAndTime(date, end);
+
+        final bool available = await isRoomAvailable(
+          roomRef: roomRef,
+          startTime: startTime,
+          endTime: endTime,
+        );
+
+        if (available) {
+          _addBotResponse(
+            "The room is available from "
+            "${_formatTime(startTime)} to ${_formatTime(endTime)}."
+          );
         } else {
-          String list = "I found these classes:\n";
-          for (var doc in results.docs) {
-            final data = doc.data();
-            final name = data['name'] ?? 'Unnamed Class';
-            final slots = data['slots'] ?? 0;
-            list += "• $name ($slots slots left)\n";
-          }
-          _addBotResponse(list);
+          _addBotResponse(
+            "Sorry, the room is already booked for that time slot."
+          );
         }
       }
-    } catch (e) {
-      // 6. Debugging output for the terminal
-      debugPrint("Chatbot Error: $e");
-      _addBotResponse("Sorry, I had trouble processing that. Try asking for a specific class category.");
+    } catch (e, stack) {
+       debugPrint("❌ REAL ERROR: $e");
+       debugPrint("📍 STACK TRACE:\n$stack");
+       _addBotResponse("Something went wrong. Please try again.");
     } finally {
       setState(() => _isTyping = false);
     }
   }
+
+  Future<bool> isRoomAvailable({
+    required DocumentReference roomRef,
+    required DateTime startTime,
+    required DateTime endTime,
+  }) async {
+
+    final query = await FirebaseFirestore.instance
+        .collection('slots')
+        .where('roomId', isEqualTo: roomRef)
+        .where('status', isEqualTo: 'booked')
+        .where('startTime', isLessThan: Timestamp.fromDate(endTime))
+        .where('endTime', isGreaterThan: Timestamp.fromDate(startTime))
+        .get();
+
+    // If any overlapping slot exists → NOT available
+    return query.docs.isEmpty;
+  }
+
 
   void _addBotResponse(String text) {
     setState(() => _messages.add({"text": text, "isUser": false}));

@@ -2,18 +2,20 @@
  * Firebase Functions entry point
  */
 
+// cloud functions for sending approval emails via SendGrid
 const {setGlobalOptions} = require("firebase-functions");
 const {onDocumentUpdated} = require("firebase-functions/v2/firestore");
 const logger = require("firebase-functions/logger");
 const {defineString} = require("firebase-functions/params");
-// const functions = require("firebase-functions");
+const {onRequest} = require("firebase-functions/v2/https");
+const {GoogleGenerativeAI} = require("@google/generative-ai");
 const sgMail = require("@sendgrid/mail");
-
-const SENDGRID_KEY = defineString("SENDGRID_KEY");
 
 // 🔹 Global options (ONLY ONCE)
 setGlobalOptions({maxInstances: 10});
 
+// 🔹 SendGrid setup
+const SENDGRID_KEY = defineString("SENDGRID_KEY");
 sgMail.setApiKey(SENDGRID_KEY.value());
 
 // 🔔 Firestore trigger
@@ -65,3 +67,50 @@ exports.sendApprovalEmail = onDocumentUpdated(
       }
     },
 );
+
+// cloud functions for gemini api calls
+const GEMINI_KEY = defineString("GEMINI_API_KEY");
+const genAI = new GoogleGenerativeAI(GEMINI_KEY.value());
+
+// HTTPS trigger for Gemini chat
+exports.chatWithGemini = onRequest(
+    {cors: true},
+    async (req, res) => {
+      try {
+        const {message} = req.body;
+
+        const model = genAI.getGenerativeModel({
+          model: "models/gemini-2.0-flash",
+          systemInstruction: `
+        You are a Classroom Booking Assistant.
+
+              You must respond ONLY in valid JSON.
+              Use double quotes only.
+              No explanations. No markdown.
+
+              If the user asks about room availability, extract:
+              - roomId
+              - date (YYYY-MM-DD)
+              - start (HH:mm in 24-hour format)
+              - end (HH:mm in 24-hour format)
+
+              Example:
+              {
+                "roomId": "/rooms/CSE-AI",
+                "date": "2025-12-29",
+                "start": "12:30",
+                "end": "13:00"
+              }
+
+              If the input is unclear:
+              {"type":"msg","content":"Please specify room and time."}
+      `,
+        });
+
+        const result = await model.generateContent(message);
+        res.json({text: result.response.text()});
+      } catch (e) {
+        res.status(500).json({error: "Gemini failed"});
+      }
+    });
+

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'classroom_view.dart';
+import 'models.dart';
 import 'permission_letter_page.dart';
+import 'classroom_view.dart';
+import 'models.dart';
+import 'firestore_service.dart';
 
 class BookingDetailsPage extends StatelessWidget {
   final Room room;
@@ -23,6 +26,49 @@ class BookingDetailsPage extends StatelessWidget {
     hour = hour > 12 ? hour - 12 : hour;
     if (hour == 0) hour = 12;
     return "$hour:${minute.toString().padLeft(2, '0')} $suffix";
+  }
+
+  Future<void> _addBookingToDB(BuildContext context) async {
+    try {
+      final user = await FirestoreService().getCurrentUser();
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("User not found. Please log in again.")),
+        );
+        return;
+      }
+
+      await FirestoreService().addBooking(
+        user.id,
+        room.id,
+        DateTime(
+          DateTime.now().year,
+          DateTime.now().month,
+          DateTime.now().day,
+          startTime.hour,
+          startTime.minute,
+        ),
+        DateTime(
+          DateTime.now().year,
+          DateTime.now().month,
+          DateTime.now().day,
+          endTime.hour,
+          endTime.minute,
+        ),
+        type,
+        // Set status to 'booked'
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Booking confirmed for your class.")),
+      );
+
+      Navigator.pop(context); // Go back after confirmation
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to confirm booking: $e")));
+    }
   }
 
   @override
@@ -68,23 +114,23 @@ class BookingDetailsPage extends StatelessWidget {
             Center(
               child: ElevatedButton(
                 onPressed: () {
-                  // Here you can add logic to confirm the booking
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Booking confirmed!"),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => PermissionLetterPage(
-                        initialEventTime:
-                            "${_formatTime(startTime)} - ${_formatTime(endTime)}",
-                        initialEventVenue: room.name,
+                  if (type.toLowerCase() == 'class') {
+                    _addBookingToDB(context);
+                  } else {
+                    // Navigate to permission letter page
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PermissionLetterPage(
+                          initialEventTime:
+                              "${_formatTime(startTime)} - ${_formatTime(endTime)}",
+                          initialEventVenue: room.name,
+                          room: room,
+                          type: type,
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryOrange,

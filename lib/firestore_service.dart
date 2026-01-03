@@ -161,7 +161,7 @@ class FirestoreService {
           isEqualTo: _db.doc('users/$userId'),
         ) // Query by DocumentReference
         .get();
-    if(snapshot.docs.isEmpty){
+    if (snapshot.docs.isEmpty) {
       return [];
     }
 
@@ -178,36 +178,60 @@ class FirestoreService {
   ) async {
     // Check for overlapping booked slots first
     final existingSlots = await getSlotsForRoom(roomId);
+    print("checking for overlapping slots");
     for (var s in existingSlots) {
-      if (s.status == 'booked') {
+      if (s.status == 'booked' || s.status == 'reserved') {
         // overlap check
+        print("Existing slot :${s.startTime}- ${s.endTime} is ${s.status}");
         if (s.startTime.isBefore(endTime) && s.endTime.isAfter(startTime)) {
           throw Exception('Selected time overlaps with an existing booking.');
         }
       }
     }
-
+    print("Adding booking to database");
     // Add booking document
-    await _db.collection('bookings').add({
-      'userId': _db.doc('users/$userId'), // Save as DocumentReference
-      'roomId': _db.doc('rooms/$roomId'),
-      'startTime': startTime,
-      'endTime': endTime,
-      'type': type,
-      'approved': false, // Assume pending approval
-    });
+    if (type.toLowerCase() == 'class') {
+      await _db.collection('bookings').add({
+        'userId': _db.doc('users/$userId'), // Save as DocumentReference
+        'roomId': _db.doc('rooms/$roomId'),
+        'startTime': startTime,
+        'endTime': endTime,
+        'type': type,
+        'approved': true, // Assume pending approval
+      });
+      DateTime current = startTime;
+      while (current.isBefore(endTime)) {
+        DateTime slotEnd = current.add(const Duration(minutes: 30));
+        await _db.collection('slots').add({
+          'roomId': _db.doc('rooms/$roomId'),
+          'startTime': current,
+          'endTime': slotEnd,
+          'status': 'booked',
+        });
+        current = slotEnd;
+      }
+    } else {
+      await _db.collection('bookings').add({
+        'userId': _db.doc('users/$userId'), // Save as DocumentReference
+        'roomId': _db.doc('rooms/$roomId'),
+        'startTime': startTime,
+        'endTime': endTime,
+        'type': type,
+        'approved': false, // Assume pending approval
+      });
+      DateTime current = startTime;
+      while (current.isBefore(endTime)) {
+        DateTime slotEnd = current.add(const Duration(minutes: 30));
+        await _db.collection('slots').add({
+          'roomId': _db.doc('rooms/$roomId'),
+          'startTime': current,
+          'endTime': slotEnd,
+          'status': 'reserved',
+        });
+        current = slotEnd;
+      }
+    }
 
     // Update slots to booked
-    DateTime current = startTime;
-    while (current.isBefore(endTime)) {
-      DateTime slotEnd = current.add(const Duration(minutes: 30));
-      await _db.collection('slots').add({
-        'roomId': _db.doc('rooms/$roomId'),
-        'startTime': current,
-        'endTime': slotEnd,
-        'status': 'booked',
-      });
-      current = slotEnd;
-    }
   }
 }

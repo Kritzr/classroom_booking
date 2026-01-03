@@ -232,28 +232,9 @@ class _FloorSectionState extends State<FloorSection> {
                 ElevatedButton(
                   onPressed: () async {
                     // Add booking to DB with overlap check
-                    final user = await _firestore.getCurrentUser();
-                    if (user == null) return;
+          
                     try {
-                      await _firestore.addBooking(
-                        user.id,
-                        room.id,
-                        DateTime(
-                          DateTime.now().year,
-                          DateTime.now().month,
-                          DateTime.now().day,
-                          startTime.hour,
-                          startTime.minute,
-                        ),
-                        DateTime(
-                          DateTime.now().year,
-                          DateTime.now().month,
-                          DateTime.now().day,
-                          endTime.hour,
-                          endTime.minute,
-                        ),
-                        selectedType,
-                      );
+                      
 
                       Navigator.of(context).pop(); // pop after success
 
@@ -267,17 +248,7 @@ class _FloorSectionState extends State<FloorSection> {
                           ),
                         ),
                       );
-                      if (result == true && mounted) {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => PermissionLetterPage(
-                              initialEventVenue: room.name,
-                              initialEventTime:
-                                  "${_formatTime(startTime)} - ${_formatTime(endTime)}",
-                            ),
-                          ),
-                        );
-                      }
+                      
                     } catch (e) {
                       // Show error (e.g., overlapping booking)
                       showDialog(
@@ -433,25 +404,6 @@ class _FloorSectionState extends State<FloorSection> {
   }
 }
 
-/* -------------------- ROOM MODEL -------------------- */
-class Room {
-  final String id;
-  final String name;
-  final bool bookable;
-  final String deptId;
-  final int floor;
-  final List<Slot> slots;
-
-  const Room({
-    required this.id,
-    required this.name,
-    required this.bookable,
-    required this.deptId,
-    required this.floor,
-    required this.slots,
-  });
-}
-
 /* -------------------- ROOM TILE -------------------- */
 class RoomTile extends StatefulWidget {
   final Room room;
@@ -529,7 +481,7 @@ class _RoomTileState extends State<RoomTile> {
                   ),
                   RadioListTile<String>(
                     title: const Text('Conducting Class'),
-                    value: 'Class',
+                    value: 'class',
                     groupValue: selectedType,
                     onChanged: (value) {
                       setState(() {
@@ -539,7 +491,7 @@ class _RoomTileState extends State<RoomTile> {
                   ),
                   RadioListTile<String>(
                     title: const Text('Event/Club'),
-                    value: 'Event',
+                    value: 'event',
                     groupValue: selectedType,
                     onChanged: (value) {
                       setState(() {
@@ -559,28 +511,10 @@ class _RoomTileState extends State<RoomTile> {
                 ElevatedButton(
                   onPressed: () async {
                     // Add booking to DB with overlap check
-                    final user = await _firestore.getCurrentUser();
-                    if (user == null) return;
+                    
+                   
                     try {
-                      await _firestore.addBooking(
-                        user.id,
-                        widget.room.id,
-                        DateTime(
-                          DateTime.now().year,
-                          DateTime.now().month,
-                          DateTime.now().day,
-                          startTime.hour,
-                          startTime.minute,
-                        ),
-                        DateTime(
-                          DateTime.now().year,
-                          DateTime.now().month,
-                          DateTime.now().day,
-                          endTime.hour,
-                          endTime.minute,
-                        ),
-                        selectedType,
-                      );
+                     
 
                       Navigator.of(context).pop(); // pop after success
 
@@ -594,17 +528,7 @@ class _RoomTileState extends State<RoomTile> {
                           ),
                         ),
                       );
-                      if (result == true && mounted) {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => PermissionLetterPage(
-                              initialEventVenue: widget.room.name,
-                              initialEventTime:
-                                  "${_formatTime(startTime)} - ${_formatTime(endTime)}",
-                            ),
-                          ),
-                        );
-                      }
+                      
                     } catch (e) {
                       showDialog(
                         context: context,
@@ -702,7 +626,8 @@ class _RoomTileState extends State<RoomTile> {
 
               // Availability bar
               AvailabilityBar(
-                freeRatio: widget.room.slots
+                freeRatio:
+                    widget.room.slots
                         .where((s) => s.status == SlotStatus.available)
                         .length /
                     widget.room.slots.length,
