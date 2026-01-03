@@ -171,7 +171,9 @@ class _LoginPageState extends State<LoginPage> {
                                     const Text("Save Password"),
                                     const Spacer(),
                                     TextButton(
-                                      onPressed: () {},
+                                      onPressed: () {
+                                        _showForgotPasswordDialog();    
+                                      },
                                       child: const Text(
                                         "Forgot Password?",
                                         style: TextStyle(color: Colors.black),
@@ -380,6 +382,64 @@ class _LoginPageState extends State<LoginPage> {
           ), // stack expand
           );
         },
+      ),
+    );
+  }
+
+  void _showForgotPasswordDialog() {
+    final TextEditingController emailController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Reset Password"),
+        content: TextField(
+          controller: emailController,
+          decoration: const InputDecoration(
+            hintText: "Enter your registered email",
+          ),
+          keyboardType: TextInputType.emailAddress,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final email = emailController.text.trim();
+
+              if (email.isEmpty) {
+                _showDialog(
+                  title: "Missing Email",
+                  message: "Please enter your email address",
+                );
+                return;
+              }
+
+              try {
+                await FirebaseAuth.instance.sendPasswordResetEmail(
+                  email: email,
+                );
+
+                if (!mounted) return;
+
+                Navigator.pop(context);
+
+                _showDialog(
+                  title: "Email Sent",
+                  message: "A password reset link has been sent to your email.",
+                );
+              } on FirebaseAuthException catch (e) {
+                _showDialog(
+                  title: "Error",
+                  message: e.message ?? "Something went wrong",
+                );
+              }
+            },
+            child: const Text("Send Reset Link"),
+          ),
+        ],
       ),
     );
   }
